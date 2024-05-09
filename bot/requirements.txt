@@ -1,0 +1,4 @@
+aiogram<4.0
+python-dotenv==1.0.0
+mangodm==0.1.5
+motor==3.4.0
