@@ -16,7 +16,7 @@ from mangodm import connect_to_mongo, Document
 
 from typing import List, Optional
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import traceback
 
@@ -45,6 +45,8 @@ User.register_collection()
 
 
 CHANEL_ID = '@qwertyuikmnbvcfd'
+
+REWARD_SECONDS_DELTA = 30 
 
 
 bot = Bot(token="7151259279:AAGLzcG1lC7ZsDmyR_A2OLLQA-pfDM1Um28")
@@ -80,6 +82,10 @@ async def is_sub(user_id):
         return True
     else:
         return False
+
+async def add_balance(user: User, add_cnt: int):
+    user.balance += add_cnt
+    await user.update()
 
 
 async def request_subscribe(callback):
@@ -206,6 +212,48 @@ async def process_name(message: types.Message, state: FSMContext):
     await user.update()
 
     await message.answer(f"Кошелёк привязан.", reply_markup=MenuBuilder.as_markup())
+
+
+@dp.message(F.text == "Ежедневный бонус")
+async def reward(message: types.Message):
+    try:
+        user = await User.get(tg_id=message.from_user.id)
+
+        if user.last_reward is None or (user.last_reward + timedelta(seconds=REWARD_SECONDS_DELTA) < datetime.now()):
+            builder = InlineKeyboardBuilder()
+            builder.row(InlineKeyboardButton(
+                text="Забрать бонус",
+                callback_data='get_reward')
+            )
+            await message.answer(f"Вы можете забрать бонус.", reply_markup=builder.as_markup())
+
+        else:
+            time_until_reward = (user.last_reward + timedelta(seconds=REWARD_SECONDS_DELTA)) - datetime.now()
+            hours_until_reward = time_until_reward.seconds // 3600
+            minutes_until_reward = (time_until_reward.seconds // 60) % 60
+            await message.answer("Ежедневный бонус будет доступен через {} часов и {} минут.".format(hours_until_reward, minutes_until_reward))
+    except Exception as e:
+        print(str(e))
+        print(traceback.format_exc())
+
+
+@dp.callback_query(F.data == "get_reward")
+async def get_reward(callback: types.CallbackQuery):
+    try:
+        user = await User.get(tg_id=callback.from_user.id)
+        if user.last_reward is None or (user.last_reward + timedelta(seconds=REWARD_SECONDS_DELTA) < datetime.now()):
+            await add_balance(user, 100)
+            
+            user.last_reward = datetime.now()
+            await user.update()
+            
+            await callback.message.delete()
+            await callback.message.answer("Вы получили ежедневный бонус.")
+        else:
+            await callback.answer("Ежедневный бонус пока не доступен.")
+    except Exception as e:
+        pritn(str(e))
+        print(traceback.format_exc())
 
 
 # @dp.message(Command("check"))

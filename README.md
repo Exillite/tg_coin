@@ -7,7 +7,8 @@
 - [x] User model
 - [x] Create user on start
 - [x] Balance
-- [ ] Reword
+- [x] Reword
 - [x] Connect TON walet
+- [ ] Invite friend
 - [ ] Game
 - [ ] Ambassador
