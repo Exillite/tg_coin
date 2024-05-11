@@ -1,13 +1,13 @@
 # TG COIN
 
 ## TODO:
-- [ ] Check is subscribe
-- [ ] Draw menu
-- [ ] Terms
-- [ ] User model
+- [x] Check is subscribe
+- [x] Draw menu
+- [x] Terms
+- [x] User model
 - [x] Create user on start
-- [ ] Balance
+- [x] Balance
 - [ ] Reword
-- [ ] Connect TON walet
+- [x] Connect TON walet
 - [ ] Game
 - [ ] Ambassador
