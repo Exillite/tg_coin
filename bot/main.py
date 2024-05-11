@@ -40,6 +40,7 @@ class User(Document):
     class Config:
         collection_name = "Users"
 
+
 User.register_collection()
 
 
@@ -48,8 +49,25 @@ CHANEL_ID = '@qwertyuikmnbvcfd'
 
 bot = Bot(token="7151259279:AAGLzcG1lC7ZsDmyR_A2OLLQA-pfDM1Um28")
 
-storage = MemoryStorage()
-dp = Dispatcher(storage=storage)
+dp = Dispatcher()
+
+
+
+MenuBuilder = ReplyKeyboardBuilder()
+MenuBuilder.row(
+    KeyboardButton(text="Инструкция"),
+    KeyboardButton(text="Баланс")
+)
+MenuBuilder.row(
+    KeyboardButton(text="Привязать кошелёк"),
+    KeyboardButton(text="Ежедневный бонус")
+)
+MenuBuilder.row(
+    KeyboardButton(text="Игра"),
+    KeyboardButton(text="Амбассадор")
+)
+MenuBuilder.row(KeyboardButton(text="Пригласить друга"))
+
 
 
 class WalletForm(StatesGroup):
@@ -124,23 +142,8 @@ async def cmd_start(message: types.Message, command: CommandObject):
         # invite_link = await create_start_link(bot, f'invite_{user.id}')
         # await message.answer(invite_link)
 
-        builder = ReplyKeyboardBuilder()
-        builder.row(
-            KeyboardButton(text="Инструкция"),
-            KeyboardButton(text="Баланс")
-        )
-        builder.row(
-            KeyboardButton(text="Привязать кошелёк"),
-            KeyboardButton(text="Ежедневный бонус")
-        )
-        builder.row(
-            KeyboardButton(text="Игра"),
-            KeyboardButton(text="Амбассадор")
-        )
-        builder.add(KeyboardButton(text="Пригласить друга"))
 
-
-        await message.answer("Меню", reply_markup=builder.as_markup())
+        await message.answer("Меню", reply_markup=MenuBuilder.as_markup())
     except Exception as e:
         print(str(e))
         print(traceback.format_exc())
@@ -168,12 +171,16 @@ async def balance(message: types.Message):
 
 
 @dp.message(F.text == "Привязать кошелёк")
-async def connect_wallet(message: types.Message):
-    await WalletForm.wallet_id.set()
+async def connect_wallet(message: types.Message, state: FSMContext):
+    await state.set_state(WalletForm.wallet_id)
     builder = ReplyKeyboardBuilder()
     builder.add(KeyboardButton(text="Отмена"))
 
-    await message.answer("Отправте ID кошелька в сети TON:", reply_markup=builder.as_markup())
+    mkkb = builder.as_markup()
+    mkkb.resize_keyboard = True
+    mkkb.is_persistent = True
+
+    await message.answer("Отправте ID кошелька в сети TON:", reply_markup=mkkb)
 
 
 @dp.message(F.text == "Отмена")
@@ -182,57 +189,23 @@ async def cancel_handler(message: types.Message, state: FSMContext):
 
     current_state = await state.get_state()
     if current_state is None:
-        # User is not in any state, ignoring
         return
 
     # Cancel state and inform user about it
-    await state.finish()
-    await message.reply('Отменено.')
+    await state.clear()
+    await message.answer('Отменено.', reply_markup=MenuBuilder.as_markup())
 
-    builder = ReplyKeyboardBuilder()
-    builder.row(
-        KeyboardButton(text="Инструкция"),
-        KeyboardButton(text="Баланс")
-    )
-    builder.row(
-        KeyboardButton(text="Привязать кошелёк"),
-        KeyboardButton(text="Ежедневный бонус")
-    )
-    builder.row(
-        KeyboardButton(text="Игра"),
-        KeyboardButton(text="Амбассадор")
-    )
-    builder.add(KeyboardButton(text="Пригласить друга"))
-
-    await message.answer("Меню", reply_markup=builder.as_markup())
 
 @dp.message(WalletForm.wallet_id)
 async def process_name(message: types.Message, state: FSMContext):
 
-    # Finish our conversation
-    await state.finish()
+    await state.clear()
 
     user = await User.get(tg_id=message.from_user.id)
     user.wallet_id = message.text
+    await user.update()
 
-    await message.answer(f"Кошелёк привязан.")
-
-    builder = ReplyKeyboardBuilder()
-    builder.row(
-        KeyboardButton(text="Инструкция"),
-        KeyboardButton(text="Баланс")
-    )
-    builder.row(
-        KeyboardButton(text="Привязать кошелёк"),
-        KeyboardButton(text="Ежедневный бонус")
-    )
-    builder.row(
-        KeyboardButton(text="Игра"),
-        KeyboardButton(text="Амбассадор")
-    )
-    builder.add(KeyboardButton(text="Пригласить друга"))
-
-    await message.answer("Меню", reply_markup=builder.as_markup())
+    await message.answer(f"Кошелёк привязан.", reply_markup=MenuBuilder.as_markup())
 
 
 # @dp.message(Command("check"))
