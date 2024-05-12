@@ -226,6 +226,10 @@ async def reward(message: types.Message):
     try:
         user = await User.get(tg_id=message.from_user.id)
 
+        if len(user.referrals_ids) < 2:
+            await message.answer("Пригласите двух друзей, что бы получать ежедневный бонус")
+            return
+
         if user.last_reward is None or (user.last_reward + timedelta(seconds=REWARD_SECONDS_DELTA) < datetime.now()):
             builder = InlineKeyboardBuilder()
             builder.row(InlineKeyboardButton(
