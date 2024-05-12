@@ -9,6 +9,6 @@
 - [x] Balance
 - [x] Reword
 - [x] Connect TON walet
-- [ ] Invite friend
+- [x] Invite friend
 - [x] Game
 - [ ] Ambassador
