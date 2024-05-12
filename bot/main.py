@@ -267,9 +267,10 @@ async def get_reward(callback: types.CallbackQuery):
         print(traceback.format_exc())
 
 
-@dp.message(F.text == "Игра")
-async def game(message: types.Message):
-    await message.answer("Добро пожаловать в игру '48/52'!\nВыберите вашу ставку: 1, 2, 4 или 8 STN (Superton).\nПосле выбора ставки, угадайте, будет ли выпавшее случайное число больше 52 или меньше 48.\nЕсли ваш выбор совпадает с результатом, вы побеждаете и получаете выигрыш в размере вашей ставки.\nПомните, что число 48 для <48 считается проигрышным, а 47,99 - выигрышным. То же самое с числом 52.")
+async def start_game(message, show_rule=True):
+    if show_rule:
+        await message.answer("Добро пожаловать в игру '48/52'!\nВыберите вашу ставку: 1, 2, 4 или 8 STN (Superton).\nПосле выбора ставки, угадайте, будет ли выпавшее случайное число больше 52 или меньше 48.\nЕсли ваш выбор совпадает с результатом, вы побеждаете и получаете выигрыш в размере вашей ставки.\nПомните, что число 48 для <48 считается проигрышным, а 47,99 - выигрышным. То же самое с числом 52.")
+    
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(
         text="1 STN",
@@ -289,6 +290,14 @@ async def game(message: types.Message):
     )
     await message.answer("Выберите ставку:", reply_markup=builder.as_markup())
 
+
+@dp.message(F.text == "Игра")
+async def game(message: types.Message):
+    await start_game(message)
+
+@dp.callback_query(F.data == "game_again")
+async def game_again(callback: types.CallbackQuery):
+    await start_game(callback.message, show_rule=False)
 
 
 async def get_bet(callback: types.CallbackQuery, bet: int):
@@ -337,20 +346,26 @@ async def game_bet(callback: types.CallbackQuery, num: int):
 
     await callback.message.answer(f"Загаданное число: {bot_num}")
 
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(
+        text="Играть ещё раз",
+        callback_data='game_again')
+    )
+
     if num == 48:
         if bot_num < 48:
             await add_balance(user, GAMES[callback.from_user.id].bet)
-            await callback.message.answer("You win!")
+            await callback.message.answer("You win!", reply_markup=builder.as_markup())
         else:
             await add_balance(user, -(GAMES[callback.from_user.id].bet))
-            await callback.message.answer("You lose!")
+            await callback.message.answer("You lose!", reply_markup=builder.as_markup())
     if num == 52:
         if bot_num > 52:
             await add_balance(user, GAMES[callback.from_user.id].bet)
-            await callback.message.answer("You win!")
+            await callback.message.answer("You win!", reply_markup=builder.as_markup())
         else:
             await add_balance(user, -(GAMES[callback.from_user.id].bet))
-            await callback.message.answer("You lose!")
+            await callback.message.answer("You lose!", reply_markup=builder.as_markup())
 
     del GAMES[callback.from_user.id]
 
