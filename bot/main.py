@@ -33,7 +33,7 @@ class User(Document):
     balance: int = 0
 
     invite_by: Optional['User'] = None
-    referrals_ids: List[int] = []
+    referrals_ids: List[str] = []
 
     last_reward: Optional[datetime] = None
 
@@ -178,9 +178,13 @@ async def terms(message: types.Message):
 
 @dp.message(F.text == "Баланс")
 async def balance(message: types.Message):
-    user = await User.get(tg_id=message.from_user.id)
+    try:
+        user = await User.get(tg_id=message.from_user.id)
 
-    await message.answer(f"Ваш баланс: {user.balance}\nКоличество приглашённых пользователей: {len(user.referrals_ids)}")
+        await message.answer(f"Ваш баланс: {user.balance}\nКоличество приглашённых пользователей: {len(user.referrals_ids)}")
+    except Exception as e:
+        print(str(e))
+        print(traceback.format_exc())
 
 
 @dp.message(F.text == "Привязать кошелёк")
@@ -263,8 +267,8 @@ async def get_reward(callback: types.CallbackQuery):
         print(traceback.format_exc())
 
 
-@dp.message(F.text == "Ежедневный бонус")
-async def reward(message: types.Message):
+@dp.message(F.text == "Игра")
+async def game(message: types.Message):
     await message.answer("Добро пожаловать в игру '48/52'!\nВыберите вашу ставку: 1, 2, 4 или 8 STN (Superton).\nПосле выбора ставки, угадайте, будет ли выпавшее случайное число больше 52 или меньше 48.\nЕсли ваш выбор совпадает с результатом, вы побеждаете и получаете выигрыш в размере вашей ставки.\nПомните, что число 48 для <48 считается проигрышным, а 47,99 - выигрышным. То же самое с числом 52.")
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(
@@ -331,19 +335,21 @@ async def game_bet(callback: types.CallbackQuery, num: int):
     user = await User.get(tg_id=callback.from_user.id)
     bot_num = random.randint(1, 100)
 
+    await callback.message.answer(f"Загаданное число: {bot_num}")
+
     if num == 48:
         if bot_num < 48:
-            add_balance(user, GAMES[callback.from_user.id].bet)
+            await add_balance(user, GAMES[callback.from_user.id].bet)
             await callback.message.answer("You win!")
         else:
-            add_balance(user, -(GAMES[callback.from_user.id].bet))
+            await add_balance(user, -(GAMES[callback.from_user.id].bet))
             await callback.message.answer("You lose!")
     if num == 52:
         if bot_num > 52:
-            add_balance(user, GAMES[callback.from_user.id].bet)
+            await add_balance(user, GAMES[callback.from_user.id].bet)
             await callback.message.answer("You win!")
         else:
-            add_balance(user, -(GAMES[callback.from_user.id].bet))
+            await add_balance(user, -(GAMES[callback.from_user.id].bet))
             await callback.message.answer("You lose!")
 
     del GAMES[callback.from_user.id]
@@ -356,6 +362,33 @@ async def game_bet_48(callback: types.CallbackQuery):
 @dp.callback_query(F.data == "game_52")
 async def game_bet_52(callback: types.CallbackQuery):
     await game_bet(callback, 52)
+
+
+@dp.message(F.text == "Пригласить друга")
+async def invite_friend(message: types.Message):
+    try:
+        print(111)
+        user = await User.get(tg_id=message.from_user.id)
+        print(112)
+        invite_link = await create_start_link(bot, f'invite_{user.id}')
+        print(222)
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(
+            text="Поделиться",
+            switch_inline_query=f"Присоеденяйтесь к SUPERTON\n\n{invite_link}")
+        )
+        await message.answer("Поделитесь что бы пригласить друга и получить бонус", reply_markup=builder.as_markup())
+    except:
+        pritn(str(e))
+        print(traceback.format_exc())
+
+
+@dp.message(F.text == "Амбассадор")
+async def invite_friend(message: types.Message):
+    user = await User.get(tg_id=message.from_user.id)
+
+    if len(user.referrals_ids) < 100:
+        await message.answer("Что бы получить доступ, пригласите 100 пользователей.")
 
 
 # @dp.message(Command("check"))
