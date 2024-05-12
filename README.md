@@ -10,5 +10,5 @@
 - [x] Reword
 - [x] Connect TON walet
 - [ ] Invite friend
-- [ ] Game
+- [x] Game
 - [ ] Ambassador

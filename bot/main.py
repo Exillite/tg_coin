@@ -18,6 +18,8 @@ from typing import List, Optional
 
 from datetime import datetime, timedelta
 
+import random
+
 import traceback
 
 
@@ -75,6 +77,11 @@ MenuBuilder.row(KeyboardButton(text="Пригласить друга"))
 class WalletForm(StatesGroup):
     wallet_id = State()
 
+class GameState():
+    num: int = 0
+    bet: int = 0
+
+GAMES = {} # key: tg id, value: GameState
 
 async def is_sub(user_id):
     user_channel_status = await bot.get_chat_member(chat_id=CHANEL_ID, user_id=user_id)
@@ -254,6 +261,101 @@ async def get_reward(callback: types.CallbackQuery):
     except Exception as e:
         pritn(str(e))
         print(traceback.format_exc())
+
+
+@dp.message(F.text == "Ежедневный бонус")
+async def reward(message: types.Message):
+    await message.answer("Добро пожаловать в игру '48/52'!\nВыберите вашу ставку: 1, 2, 4 или 8 STN (Superton).\nПосле выбора ставки, угадайте, будет ли выпавшее случайное число больше 52 или меньше 48.\nЕсли ваш выбор совпадает с результатом, вы побеждаете и получаете выигрыш в размере вашей ставки.\nПомните, что число 48 для <48 считается проигрышным, а 47,99 - выигрышным. То же самое с числом 52.")
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(
+        text="1 STN",
+        callback_data='bet_1')
+    )
+    builder.add(InlineKeyboardButton(
+        text="2 STN",
+        callback_data='bet_2')
+    )
+    builder.add(InlineKeyboardButton(
+        text="4 STN",
+        callback_data='bet_4')
+    )
+    builder.add(InlineKeyboardButton(
+        text="8 STN",
+        callback_data='bet_8')
+    )
+    await message.answer("Выберите ставку:", reply_markup=builder.as_markup())
+
+
+
+async def get_bet(callback: types.CallbackQuery, bet: int):
+    user = await User.get(tg_id=callback.from_user.id)
+
+    if user.balance < bet:
+        callback.message.answer("У вас недостаточно средств")
+        return
+
+    GAMES[callback.from_user.id] = GameState()
+    GAMES[callback.from_user.id].bet = bet
+
+    builder = InlineKeyboardBuilder()
+    builder.add(InlineKeyboardButton(
+        text="Меньше 48",
+        callback_data='game_48')
+    )
+    builder.add(InlineKeyboardButton(
+        text="Больше 52",
+        callback_data='game_52')
+    )
+
+    await callback.message.answer("Угадайте число", reply_markup=builder.as_markup())
+
+
+@dp.callback_query(F.data == "bet_1")
+async def get_bet_1(callback: types.CallbackQuery):
+    await get_bet(callback, 1)
+
+@dp.callback_query(F.data == "bet_2")
+async def get_bet_2(callback: types.CallbackQuery):
+    await get_bet(callback, 2)
+
+@dp.callback_query(F.data == "bet_4")
+async def get_bet_4(callback: types.CallbackQuery):
+    await get_bet(callback, 4)
+
+@dp.callback_query(F.data == "bet_8")
+async def get_bet_8(callback: types.CallbackQuery):
+    await get_bet(callback, 8)
+
+
+async def game_bet(callback: types.CallbackQuery, num: int):
+    user = await User.get(tg_id=callback.from_user.id)
+    bot_num = random.randint(1, 100)
+
+    if num == 48:
+        if bot_num < 48:
+            add_balance(user, GAMES[callback.from_user.id].bet)
+            await callback.message.answer("You win!")
+        else:
+            add_balance(user, -(GAMES[callback.from_user.id].bet))
+            await callback.message.answer("You lose!")
+    if num == 52:
+        if bot_num > 52:
+            add_balance(user, GAMES[callback.from_user.id].bet)
+            await callback.message.answer("You win!")
+        else:
+            add_balance(user, -(GAMES[callback.from_user.id].bet))
+            await callback.message.answer("You lose!")
+
+    del GAMES[callback.from_user.id]
+
+
+@dp.callback_query(F.data == "game_48")
+async def game_bet_48(callback: types.CallbackQuery):
+    await game_bet(callback, 48)
+
+@dp.callback_query(F.data == "game_52")
+async def game_bet_52(callback: types.CallbackQuery):
+    await game_bet(callback, 52)
 
 
 # @dp.message(Command("check"))
