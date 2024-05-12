@@ -48,7 +48,7 @@ User.register_collection()
 
 CHANEL_ID = '@qwertyuikmnbvcfd'
 
-REWARD_SECONDS_DELTA = 30 
+REWARD_SECONDS_DELTA = 60 * 60 * 24
 
 
 bot = Bot(token="7151259279:AAGLzcG1lC7ZsDmyR_A2OLLQA-pfDM1Um28")
@@ -151,10 +151,6 @@ async def cmd_start(message: types.Message, command: CommandObject):
                 await user.create()
 
         await message.answer(f"Hello! {message.from_user.first_name}")
-
-        # invite_link = await create_start_link(bot, f'invite_{user.id}')
-        # await message.answer(invite_link)
-
 
         await message.answer("Меню", reply_markup=MenuBuilder.as_markup())
     except Exception as e:
@@ -295,7 +291,7 @@ async def get_bet(callback: types.CallbackQuery, bet: int):
     user = await User.get(tg_id=callback.from_user.id)
 
     if user.balance < bet:
-        callback.message.answer("У вас недостаточно средств")
+        callback.message.answer("У вас недостаточно средств!")
         return
 
     GAMES[callback.from_user.id] = GameState()
@@ -367,11 +363,8 @@ async def game_bet_52(callback: types.CallbackQuery):
 @dp.message(F.text == "Пригласить друга")
 async def invite_friend(message: types.Message):
     try:
-        print(111)
         user = await User.get(tg_id=message.from_user.id)
-        print(112)
         invite_link = await create_start_link(bot, f'invite_{user.id}')
-        print(222)
         builder = InlineKeyboardBuilder()
         builder.add(InlineKeyboardButton(
             text="Поделиться",
