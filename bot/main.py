@@ -31,13 +31,17 @@ class User(Document):
     tg_id: int
 
     balance: int = 0
+    state_balance: int = 0
 
     invite_by: Optional['User'] = None
     referrals_ids: List[str] = []
 
     last_reward: Optional[datetime] = None
+    last_reward_id: Optional[int] = None
 
     wallet_id: Optional[str] = None
+
+    is_ambassador: bool = False
 
     class Config:
         collection_name = "Users"
@@ -47,9 +51,10 @@ User.register_collection()
 
 
 CHANEL_ID = '@qwertyuikmnbvcfd'
+AMBASSADOR_CHAT = "{link}"
 
 REWARD_SECONDS_DELTA = 60 * 60 * 24
-
+REWARDS_CNT = [1, 2, 4, 8, 10]
 
 bot = Bot(token="7151259279:AAGLzcG1lC7ZsDmyR_A2OLLQA-pfDM1Um28")
 
@@ -71,6 +76,7 @@ MenuBuilder.row(
     KeyboardButton(text="Амбассадор")
 )
 MenuBuilder.row(KeyboardButton(text="Пригласить друга"))
+MenuKeyboard = MenuBuilder.as_markup(resize_keyboard=True)
 
 
 
@@ -90,17 +96,22 @@ async def is_sub(user_id):
     else:
         return False
 
-async def add_balance(user: User, add_cnt: int):
+async def add_balance(user: User, add_cnt: int, reson: str):
     user.balance += add_cnt
+
+    resons_for_state = ["reward", "invite"]
+
+    if reson in resons_for_state:
+        user.state_balance += add_cnt
+
+        if user.invite_by and user.invite_by.is_ambassador:
+            await add_balance(ser.invite_by, int((add_cnt / 100) * 10), "ambassador")
+
     await user.update()
 
 
 async def request_subscribe(callback):
     try:
-        # inline_btn_1 = InlineKeyboardButton(text='Подписаться на канал', url='https://t.me/qwertyuikmnbvcfd')
-        # inline_btn_2 = InlineKeyboardButton(text='Проверить подписку', callback_data='check_sub')
-        # inline_kb = InlineKeyboardMarkup(inline_keyboard=[inline_btn_1, inline_btn_2])
-
         builder = InlineKeyboardBuilder()
         builder.row(InlineKeyboardButton(
             text="Подписаться на канал",
@@ -144,6 +155,8 @@ async def cmd_start(message: types.Message, command: CommandObject):
                 try:
                     inviter_user.referrals_ids.append(user.id)
                     await inviter_user.update()
+
+                    await add_balance(inviter_user, 100, "invite")
                 except Exception as e:
                     print(traceback.format_exc())
             else:
@@ -152,7 +165,7 @@ async def cmd_start(message: types.Message, command: CommandObject):
 
         await message.answer(f"Hello! {message.from_user.first_name}")
 
-        await message.answer("Меню", reply_markup=MenuBuilder.as_markup())
+        await message.answer("Меню", reply_markup=MenuKeyboard)
     except Exception as e:
         print(str(e))
         print(traceback.format_exc())
@@ -206,7 +219,7 @@ async def cancel_handler(message: types.Message, state: FSMContext):
 
     # Cancel state and inform user about it
     await state.clear()
-    await message.answer('Отменено.', reply_markup=MenuBuilder.as_markup())
+    await message.answer('Отменено.', reply_markup=MenuKeyboard)
 
 
 @dp.message(WalletForm.wallet_id)
@@ -218,7 +231,7 @@ async def process_name(message: types.Message, state: FSMContext):
     user.wallet_id = message.text
     await user.update()
 
-    await message.answer(f"Кошелёк привязан.", reply_markup=MenuBuilder.as_markup())
+    await message.answer(f"Кошелёк привязан.", reply_markup=MenuKeyboard)
 
 
 @dp.message(F.text == "Ежедневный бонус")
@@ -253,7 +266,25 @@ async def get_reward(callback: types.CallbackQuery):
     try:
         user = await User.get(tg_id=callback.from_user.id)
         if user.last_reward is None or (user.last_reward + timedelta(seconds=REWARD_SECONDS_DELTA) < datetime.now()):
-            await add_balance(user, 100)
+            print(111)
+            add_cnt = 0
+            if user.last_reward_id is None:
+                add_cnt = REWARDS_CNT[0]
+                user.last_reward_id = 0
+                print(222)
+            else:
+                if user.last_reward + timedelta(seconds=(REWARD_SECONDS_DELTA*2)) < datetime.now():
+                    add_cnt = REWARDS_CNT[0]
+                    user.last_reward_id = 0
+                else:
+                    if user.last_reward_id == len(REWARDS_CNT) - 1:
+                        add_cnt = REWARDS_CNT[0]
+                        user.last_reward_id = 0
+                    else:
+                        add_cnt = REWARDS_CNT[user.last_reward_id + 1]
+                        user.last_reward_id += 1
+
+            await add_balance(user, add_cnt, "reward")
             
             user.last_reward = datetime.now()
             await user.update()
@@ -354,17 +385,17 @@ async def game_bet(callback: types.CallbackQuery, num: int):
 
     if num == 48:
         if bot_num < 48:
-            await add_balance(user, GAMES[callback.from_user.id].bet)
+            await add_balance(user, GAMES[callback.from_user.id].bet, "game")
             await callback.message.answer("You win!", reply_markup=builder.as_markup())
         else:
-            await add_balance(user, -(GAMES[callback.from_user.id].bet))
+            await add_balance(user, -(GAMES[callback.from_user.id].bet), "game")
             await callback.message.answer("You lose!", reply_markup=builder.as_markup())
     if num == 52:
         if bot_num > 52:
-            await add_balance(user, GAMES[callback.from_user.id].bet)
+            await add_balance(user, GAMES[callback.from_user.id].bet, "game")
             await callback.message.answer("You win!", reply_markup=builder.as_markup())
         else:
-            await add_balance(user, -(GAMES[callback.from_user.id].bet))
+            await add_balance(user, -(GAMES[callback.from_user.id].bet), "game")
             await callback.message.answer("You lose!", reply_markup=builder.as_markup())
 
     del GAMES[callback.from_user.id]
@@ -396,12 +427,45 @@ async def invite_friend(message: types.Message):
 
 
 @dp.message(F.text == "Амбассадор")
-async def invite_friend(message: types.Message):
+async def ambassador(message: types.Message):
     user = await User.get(tg_id=message.from_user.id)
 
     if len(user.referrals_ids) < 100:
         await message.answer("Что бы получить доступ, пригласите 100 пользователей.")
+    else:
+        if user.is_ambassador:
+            await message.answer(f"Вы получаете 10% от дохода ваших друзей.\nВступайте в чат амбассадоров. Там самая актуальная информация о проекте!\n{AMBASSADOR_CHAT}")
+        else:
+            builder = InlineKeyboardBuilder()
+            builder.add(InlineKeyboardButton(
+                text="Стать амбассадором",
+                callback_data="be_ambassador")
+            )
+            await message.answer("Вы пригласили 100 пользователей", reply_markup=builder.as_markup())
 
+
+@dp.callback_query(F.data == "be_ambassador")
+async def be_ambassador(callback: types.CallbackQuery):
+    try:
+        user = await User.get(tg_id=callback.from_user.id)
+        if user.is_ambassador:
+            return
+
+        user.is_ambassador = True
+        await user.update()
+
+        await callback.message.answer(f"Теперь вы получаете 10% от дохода ваших друзей.\nВступайте в чат амбассадоров. Там самая актуальная информация о проекте!\n{AMBASSADOR_CHAT}")
+
+        add_cnt = 0
+        for ref_id in user.referrals_ids:
+            ref = await User.get(id=ref_id)
+            if ref:
+                add_cnt += int((ref.state_balance / 100) * 10)
+
+        await add_balance(user, add_cnt, "ambassador")
+    except Exception as e:
+        pritn(str(e))
+        print(traceback.format_exc())
 
 # @dp.message(Command("check"))
 # async def test_sub(message: types.Message):
