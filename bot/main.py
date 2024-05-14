@@ -155,7 +155,7 @@ async def request_subscribe(callback):
 
 
 @dp.callback_query(F.data == "check_sub")
-async def send_random_value(callback: types.CallbackQuery):
+async def check_sub(callback: types.CallbackQuery):
     try:
         LG = get_lg(callback.from_user)
         user_channel_status = await bot.get_chat_member(chat_id=CHANEL_ID, user_id=callback.from_user.id)
@@ -171,6 +171,8 @@ async def send_random_value(callback: types.CallbackQuery):
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message, command: CommandObject):
     try:
+        if not (await is_sub(message.from_user.id)):
+            await request_subscribe(message)
         LG = get_lg(message.from_user)
         user = await User.get(tg_id=message.from_user.id)
         if not user:
@@ -222,6 +224,10 @@ async def terms(message: types.Message):
 @dp.message(F.text == "💰 Balance")
 async def balance(message: types.Message):
     try:
+        if not (await is_sub(message.from_user.id)):
+            await request_subscribe(message)
+            return
+
         LG = get_lg(message.from_user)
         user = await User.get(tg_id=message.from_user.id)
         invite_link = await create_start_link(bot, f'invite_{user.id}')
@@ -241,6 +247,10 @@ async def balance(message: types.Message):
 @dp.message(F.text == "👛 Привязать кошелек")
 @dp.message(F.text == "👛 Link wallet")
 async def connect_wallet(message: types.Message, state: FSMContext):
+    if not (await is_sub(message.from_user.id)):
+        await request_subscribe(message)
+        return
+
     LG = get_lg(message.from_user)
     await state.set_state(WalletForm.wallet_id)
     builder = ReplyKeyboardBuilder()
@@ -284,6 +294,9 @@ async def process_name(message: types.Message, state: FSMContext):
 @dp.message(F.text == "🤑 Daily bonus")
 async def reward(message: types.Message):
     try:
+        if not (await is_sub(message.from_user.id)):
+            await request_subscribe(message)
+            return
         LG = get_lg(message.from_user)
         user = await User.get(tg_id=message.from_user.id)
 
@@ -380,6 +393,9 @@ async def start_game(message, show_rule=True):
 @dp.message(F.text == "🎲 Игра 48/52")
 @dp.message(F.text == "🎲 Game 48/52")
 async def game(message: types.Message):
+    if not (await is_sub(message.from_user.id)):
+        await request_subscribe(message)
+        return
     await start_game(message)
 
 @dp.callback_query(F.data == "game_again")
@@ -477,6 +493,10 @@ async def game_bet_52(callback: types.CallbackQuery):
 @dp.message(F.text == "💎 Амбассадор")
 @dp.message(F.text == "💎 Ambassador")
 async def ambassador(message: types.Message):
+    if not (await is_sub(message.from_user.id)):
+        await request_subscribe(message)
+        return
+
     LG = get_lg(message.from_user)
 
     user = await User.get(tg_id=message.from_user.id)
