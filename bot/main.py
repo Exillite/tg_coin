@@ -22,6 +22,8 @@ import random
 
 import traceback
 
+import text_data as td
+
 
 MONGODB_CONNECTION_URL = "mongodb://tg_coin_mongo_db_1"
 DATABASE_NAME = "test_database"
@@ -51,6 +53,7 @@ User.register_collection()
 
 
 CHANEL_ID = '@qwertyuikmnbvcfd'
+CHANEL_LINK = '{link}'
 AMBASSADOR_CHAT = "{link}"
 
 REWARD_SECONDS_DELTA = 60 * 60 * 24
@@ -64,20 +67,34 @@ dp = Dispatcher()
 
 MenuBuilder = ReplyKeyboardBuilder()
 MenuBuilder.row(
-    KeyboardButton(text="Инструкция"),
-    KeyboardButton(text="Баланс")
+    KeyboardButton(text="📖 Инструкция"),
+    KeyboardButton(text="💰 Баланс")
 )
 MenuBuilder.row(
-    KeyboardButton(text="Привязать кошелёк"),
-    KeyboardButton(text="Ежедневный бонус")
+    KeyboardButton(text="👛 Привязать кошелек"),
+    KeyboardButton(text="🤑 Ежедневный бонус")
 )
 MenuBuilder.row(
-    KeyboardButton(text="Игра"),
-    KeyboardButton(text="Амбассадор")
+    KeyboardButton(text="🎲 Игра 48/52"),
+    KeyboardButton(text="💎 Амбассадор")
 )
-MenuBuilder.row(KeyboardButton(text="Пригласить друга"))
 MenuKeyboard = MenuBuilder.as_markup(resize_keyboard=True)
 
+
+EN_MenuBuilder = ReplyKeyboardBuilder()
+EN_MenuBuilder.row(
+    KeyboardButton(text="📖 Instruction"),
+    KeyboardButton(text="💰 Balance")
+)
+EN_MenuBuilder.row(
+    KeyboardButton(text="👛 Link wallet"),
+    KeyboardButton(text="🤑 Daily bonus")
+)
+EN_MenuBuilder.row(
+    KeyboardButton(text="🎲 Game 48/52"),
+    KeyboardButton(text="💎 Ambassador")
+)
+EN_MenuBuilder = EN_MenuBuilder.as_markup(resize_keyboard=True)
 
 
 class WalletForm(StatesGroup):
@@ -110,20 +127,28 @@ async def add_balance(user: User, add_cnt: int, reson: str):
     await user.update()
 
 
+def get_lg(user):
+    if user.language_code == "ru":
+        return "ru"
+    else:
+        return "en"
+
+
 async def request_subscribe(callback):
+    LG = get_lg(callback.from_user)
     try:
         builder = InlineKeyboardBuilder()
         builder.row(InlineKeyboardButton(
-            text="Подписаться на канал",
+            text=td.SUB_REQ["chanel_btn"][LG],
             url='https://t.me/qwertyuikmnbvcfd')
         )
         builder.row(InlineKeyboardButton(
-            text="Проверить подписку",
+            text=td.SUB_REQ["check_sub_btn"][LG],
             callback_data='check_sub')
         )
 
 
-        await callback.answer("Для продоления необходимо быть подписанным на канал!", reply_markup=builder.as_markup())
+        await callback.answer(td.SUB_REQ["need_sub_to_continue"][LG], reply_markup=builder.as_markup(), parse_mode="HTML")
     except Exception as e:
         print(str(e))
         print(traceback.format_exc())
@@ -132,12 +157,13 @@ async def request_subscribe(callback):
 @dp.callback_query(F.data == "check_sub")
 async def send_random_value(callback: types.CallbackQuery):
     try:
+        LG = get_lg(callback.from_user)
         user_channel_status = await bot.get_chat_member(chat_id=CHANEL_ID, user_id=callback.from_user.id)
         if user_channel_status.status != 'left':
-            await callback.answer("Подписка оформлена.")
+            await callback.answer(td.SUB_REQ["ok_sub"][LG], parse_mode="HTML")
             await callback.message.delete()
         else:
-            await callback.answer("Вы не подписалис на канал!")
+            await callback.answer(td.SUB_REQ["no_sub"][LG], parse_mode="HTML")
     except Exception as e:
         pritn(str(e))
 
@@ -145,6 +171,7 @@ async def send_random_value(callback: types.CallbackQuery):
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message, command: CommandObject):
     try:
+        LG = get_lg(message.from_user)
         user = await User.get(tg_id=message.from_user.id)
         if not user:
             args = command.args
@@ -163,67 +190,86 @@ async def cmd_start(message: types.Message, command: CommandObject):
                 user = User(tg_id=message.from_user.id)
                 await user.create()
 
-        await message.answer(f"Hello! {message.from_user.first_name}")
+        await message.answer(td.START["hello"][LG].format(user_name=message.from_user.first_name), parse_mode="HTML")
 
-        await message.answer("Меню", reply_markup=MenuKeyboard)
+        await message.answer(td.START["menu"][LG], reply_markup=MenuKeyboard if LG == "ru" else EN_MenuBuilder, parse_mode="HTML")
     except Exception as e:
         print(str(e))
         print(traceback.format_exc())
 
 
 
-@dp.message(F.text == "Инструкция")
+@dp.message(F.text == "📖 Instruction")
+@dp.message(F.text == "📖 Инструкция")
 async def terms(message: types.Message):
-    await message.answer(
-"""
-Инструкция:
-...
+    try:
+        LG = get_lg(message.from_user)
+        user = await User.get(tg_id=message.from_user.id)
+        invite_link = await create_start_link(bot, f'invite_{user.id}')
 
-Правила:
-...
-"""
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(
+            text=td.INVITE["btn"][LG],
+            switch_inline_query=td.INVITE["invite"][LG].format(invite_link=invite_link))
         )
+        await message.answer(td.INSTRUCTION["instruction"][LG].format(channel_link=CHANEL_LINK, invite_link=invite_link), reply_markup=builder.as_markup(), parse_mode="HTML")
+    except Exception as e:
+        print(str(e))
+        print(traceback.format_exc())
 
 
-@dp.message(F.text == "Баланс")
+@dp.message(F.text == "💰 Баланс")
+@dp.message(F.text == "💰 Balance")
 async def balance(message: types.Message):
     try:
+        LG = get_lg(message.from_user)
         user = await User.get(tg_id=message.from_user.id)
+        invite_link = await create_start_link(bot, f'invite_{user.id}')
 
-        await message.answer(f"Ваш баланс: {user.balance}\nКоличество приглашённых пользователей: {len(user.referrals_ids)}")
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(
+            text=td.INVITE["btn"][LG],
+            switch_inline_query=td.INVITE["invite"][LG].format(invite_link=invite_link))
+        )
+        ref_col = len(user.referrals_ids)
+        await message.answer(td.BALANCE["balance"][LG].format(user_balance=user.balance, ref_cnt=ref_col), reply_markup=builder.as_markup(), parse_mode="HTML")
     except Exception as e:
         print(str(e))
         print(traceback.format_exc())
 
 
-@dp.message(F.text == "Привязать кошелёк")
+@dp.message(F.text == "👛 Привязать кошелек")
+@dp.message(F.text == "👛 Link wallet")
 async def connect_wallet(message: types.Message, state: FSMContext):
+    LG = get_lg(message.from_user)
     await state.set_state(WalletForm.wallet_id)
     builder = ReplyKeyboardBuilder()
-    builder.add(KeyboardButton(text="Отмена"))
+    builder.add(KeyboardButton(text=td.WALLET["cancel_btn"][LG]))
 
     mkkb = builder.as_markup()
     mkkb.resize_keyboard = True
     mkkb.is_persistent = True
 
-    await message.answer("Отправте ID кошелька в сети TON:", reply_markup=mkkb)
+    await message.answer(td.WALLET["instruction"][LG], reply_markup=mkkb, parse_mode="HTML")
 
 
 @dp.message(F.text == "Отмена")
+@dp.message(F.text == "Cancel")
 async def cancel_handler(message: types.Message, state: FSMContext):
     """Allow user to cancel action via /cancel command"""
-
+    LG = get_lg(message.from_user)
     current_state = await state.get_state()
     if current_state is None:
         return
 
     # Cancel state and inform user about it
     await state.clear()
-    await message.answer('Отменено.', reply_markup=MenuKeyboard)
+    await message.answer(td.WALLET["canceled"][LG], reply_markup=MenuKeyboard if LG == "ru" else EN_MenuBuilder, parse_mode="HTML")
 
 
 @dp.message(WalletForm.wallet_id)
 async def process_name(message: types.Message, state: FSMContext):
+    LG = get_lg(message.from_user)
 
     await state.clear()
 
@@ -231,31 +277,39 @@ async def process_name(message: types.Message, state: FSMContext):
     user.wallet_id = message.text
     await user.update()
 
-    await message.answer(f"Кошелёк привязан.", reply_markup=MenuKeyboard)
+    await message.answer(td.WALLET["okay"][LG], reply_markup=MenuKeyboard if LG == "ru" else EN_MenuBuilder, parse_mode="HTML")
 
 
-@dp.message(F.text == "Ежедневный бонус")
+@dp.message(F.text == "🤑 Ежедневный бонус")
+@dp.message(F.text == "🤑 Daily bonus")
 async def reward(message: types.Message):
     try:
+        LG = get_lg(message.from_user)
         user = await User.get(tg_id=message.from_user.id)
 
         if len(user.referrals_ids) < 2:
-            await message.answer("Пригласите двух друзей, что бы получать ежедневный бонус")
+            invite_link = await create_start_link(bot, f'invite_{user.id}')
+            builder = InlineKeyboardBuilder()
+            builder.add(InlineKeyboardButton(
+                text=td.INVITE["btn"][LG],
+                switch_inline_query=td.INVITE["invite"][LG].format(invite_link=invite_link))
+            )
+            await message.answer(td.REWARD["invite_2"][LG], parse_mode="HTML", reply_markup=builder.as_markup())
             return
 
         if user.last_reward is None or (user.last_reward + timedelta(seconds=REWARD_SECONDS_DELTA) < datetime.now()):
             builder = InlineKeyboardBuilder()
             builder.row(InlineKeyboardButton(
-                text="Забрать бонус",
+                text=td.REWARD["get_btn"][LG],
                 callback_data='get_reward')
             )
-            await message.answer(f"Вы можете забрать бонус.", reply_markup=builder.as_markup())
+            await message.answer(td.REWARD["can_get"][LG], reply_markup=builder.as_markup(), parse_mode="HTML")
 
         else:
             time_until_reward = (user.last_reward + timedelta(seconds=REWARD_SECONDS_DELTA)) - datetime.now()
             hours_until_reward = time_until_reward.seconds // 3600
             minutes_until_reward = (time_until_reward.seconds // 60) % 60
-            await message.answer("Ежедневный бонус будет доступен через {} часов и {} минут.".format(hours_until_reward, minutes_until_reward))
+            await message.answer(td.REWARD["when_can"][LG].format(hours=hours_until_reward, minutes=minutes_until_reward), parse_mode="HTML")
     except Exception as e:
         print(str(e))
         print(traceback.format_exc())
@@ -264,14 +318,13 @@ async def reward(message: types.Message):
 @dp.callback_query(F.data == "get_reward")
 async def get_reward(callback: types.CallbackQuery):
     try:
+        LG = get_lg(callback.from_user)
         user = await User.get(tg_id=callback.from_user.id)
         if user.last_reward is None or (user.last_reward + timedelta(seconds=REWARD_SECONDS_DELTA) < datetime.now()):
-            print(111)
             add_cnt = 0
             if user.last_reward_id is None:
                 add_cnt = REWARDS_CNT[0]
                 user.last_reward_id = 0
-                print(222)
             else:
                 if user.last_reward + timedelta(seconds=(REWARD_SECONDS_DELTA*2)) < datetime.now():
                     add_cnt = REWARDS_CNT[0]
@@ -290,17 +343,19 @@ async def get_reward(callback: types.CallbackQuery):
             await user.update()
             
             await callback.message.delete()
-            await callback.message.answer("Вы получили ежедневный бонус.")
+            await callback.message.answer(td.REWARD["received"][LG], parse_mode="HTML")
         else:
-            await callback.answer("Ежедневный бонус пока не доступен.")
+            await callback.answer(td.REWARD["cant_get"][LG], parse_mode="HTML")
     except Exception as e:
         pritn(str(e))
         print(traceback.format_exc())
 
 
 async def start_game(message, show_rule=True):
+    LG = get_lg(message.from_user)
+
     if show_rule:
-        await message.answer("Добро пожаловать в игру '48/52'!\nВыберите вашу ставку: 1, 2, 4 или 8 STN (Superton).\nПосле выбора ставки, угадайте, будет ли выпавшее случайное число больше 52 или меньше 48.\nЕсли ваш выбор совпадает с результатом, вы побеждаете и получаете выигрыш в размере вашей ставки.\nПомните, что число 48 для <48 считается проигрышным, а 47,99 - выигрышным. То же самое с числом 52.")
+        await message.answer(td.GAME["instruction"][LG], parse_mode="HTML")
     
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(
@@ -319,10 +374,11 @@ async def start_game(message, show_rule=True):
         text="8 STN",
         callback_data='bet_8')
     )
-    await message.answer("Выберите ставку:", reply_markup=builder.as_markup())
+    await message.answer(td.GAME["bet"][LG], reply_markup=builder.as_markup(), parse_mode="HTML")
 
 
-@dp.message(F.text == "Игра")
+@dp.message(F.text == "🎲 Игра 48/52")
+@dp.message(F.text == "🎲 Game 48/52")
 async def game(message: types.Message):
     await start_game(message)
 
@@ -332,26 +388,32 @@ async def game_again(callback: types.CallbackQuery):
 
 
 async def get_bet(callback: types.CallbackQuery, bet: int):
-    user = await User.get(tg_id=callback.from_user.id)
+    try:
+        LG = get_lg(callback.from_user)
 
-    if user.balance < bet:
-        callback.message.answer("У вас недостаточно средств!")
-        return
+        user = await User.get(tg_id=callback.from_user.id)
 
-    GAMES[callback.from_user.id] = GameState()
-    GAMES[callback.from_user.id].bet = bet
+        if user.balance < bet:
+            await callback.message.answer(td.GAME["less_tokens"][LG], parse_mode="HTML")
+            return
 
-    builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(
-        text="Меньше 48",
-        callback_data='game_48')
-    )
-    builder.add(InlineKeyboardButton(
-        text="Больше 52",
-        callback_data='game_52')
-    )
+        GAMES[callback.from_user.id] = GameState()
+        GAMES[callback.from_user.id].bet = bet
 
-    await callback.message.answer("Угадайте число", reply_markup=builder.as_markup())
+        builder = InlineKeyboardBuilder()
+        builder.add(InlineKeyboardButton(
+            text="< 48",
+            callback_data='game_48')
+        )
+        builder.add(InlineKeyboardButton(
+            text="52 <",
+            callback_data='game_52')
+        )
+
+        await callback.message.answer(td.GAME["num"][LG], reply_markup=builder.as_markup(), parse_mode="HTML")
+    except Exception as e:
+        pritn(str(e))
+        print(traceback.format_exc())
 
 
 @dp.callback_query(F.data == "bet_1")
@@ -372,31 +434,33 @@ async def get_bet_8(callback: types.CallbackQuery):
 
 
 async def game_bet(callback: types.CallbackQuery, num: int):
+    LG = get_lg(callback.from_user)
+
     user = await User.get(tg_id=callback.from_user.id)
     bot_num = random.randint(1, 100)
 
-    await callback.message.answer(f"Загаданное число: {bot_num}")
+    await callback.message.answer(td.GAME["bot_num"][LG].format(bot_num=bot_num), parse_mode="HTML")
 
     builder = InlineKeyboardBuilder()
     builder.add(InlineKeyboardButton(
-        text="Играть ещё раз",
+        text=td.GAME["again"][LG],
         callback_data='game_again')
     )
 
     if num == 48:
         if bot_num < 48:
             await add_balance(user, GAMES[callback.from_user.id].bet, "game")
-            await callback.message.answer("You win!", reply_markup=builder.as_markup())
+            await callback.message.answer("You win!", reply_markup=builder.as_markup(), parse_mode="HTML")
         else:
             await add_balance(user, -(GAMES[callback.from_user.id].bet), "game")
-            await callback.message.answer("You lose!", reply_markup=builder.as_markup())
+            await callback.message.answer("You lose!", reply_markup=builder.as_markup(), parse_mode="HTML")
     if num == 52:
         if bot_num > 52:
             await add_balance(user, GAMES[callback.from_user.id].bet, "game")
-            await callback.message.answer("You win!", reply_markup=builder.as_markup())
+            await callback.message.answer("You win!", reply_markup=builder.as_markup(), parse_mode="HTML")
         else:
             await add_balance(user, -(GAMES[callback.from_user.id].bet), "game")
-            await callback.message.answer("You lose!", reply_markup=builder.as_markup())
+            await callback.message.answer("You lose!", reply_markup=builder.as_markup(), parse_mode="HTML")
 
     del GAMES[callback.from_user.id]
 
@@ -410,43 +474,32 @@ async def game_bet_52(callback: types.CallbackQuery):
     await game_bet(callback, 52)
 
 
-@dp.message(F.text == "Пригласить друга")
-async def invite_friend(message: types.Message):
-    try:
-        user = await User.get(tg_id=message.from_user.id)
-        invite_link = await create_start_link(bot, f'invite_{user.id}')
-        builder = InlineKeyboardBuilder()
-        builder.add(InlineKeyboardButton(
-            text="Поделиться",
-            switch_inline_query=f"Присоеденяйтесь к SUPERTON\n\n{invite_link}")
-        )
-        await message.answer("Поделитесь что бы пригласить друга и получить бонус", reply_markup=builder.as_markup())
-    except:
-        pritn(str(e))
-        print(traceback.format_exc())
-
-
-@dp.message(F.text == "Амбассадор")
+@dp.message(F.text == "💎 Амбассадор")
+@dp.message(F.text == "💎 Ambassador")
 async def ambassador(message: types.Message):
+    LG = get_lg(message.from_user)
+
     user = await User.get(tg_id=message.from_user.id)
 
     if len(user.referrals_ids) < 100:
-        await message.answer("Что бы получить доступ, пригласите 100 пользователей.")
+        await message.answer(td.AMBASSADOR["cant"][LG], parse_mode="HTML")
     else:
         if user.is_ambassador:
-            await message.answer(f"Вы получаете 10% от дохода ваших друзей.\nВступайте в чат амбассадоров. Там самая актуальная информация о проекте!\n{AMBASSADOR_CHAT}")
+            await message.answer(td.AMBASSADOR["already"][LG].format(AMBASSADOR_CHAT=AMBASSADOR_CHAT), parse_mode="HTML")
         else:
             builder = InlineKeyboardBuilder()
             builder.add(InlineKeyboardButton(
-                text="Стать амбассадором",
+                text=td.AMBASSADOR["be_amb_btn"][LG],
                 callback_data="be_ambassador")
             )
-            await message.answer("Вы пригласили 100 пользователей", reply_markup=builder.as_markup())
+            await message.answer(td.AMBASSADOR["be_amb_msg"][LG], reply_markup=builder.as_markup(), parse_mode="HTML")
 
 
 @dp.callback_query(F.data == "be_ambassador")
 async def be_ambassador(callback: types.CallbackQuery):
     try:
+        LG = get_lg(callback.from_user)
+
         user = await User.get(tg_id=callback.from_user.id)
         if user.is_ambassador:
             return
@@ -454,7 +507,7 @@ async def be_ambassador(callback: types.CallbackQuery):
         user.is_ambassador = True
         await user.update()
 
-        await callback.message.answer(f"Теперь вы получаете 10% от дохода ваших друзей.\nВступайте в чат амбассадоров. Там самая актуальная информация о проекте!\n{AMBASSADOR_CHAT}")
+        await callback.message.answer(td.AMBASSADOR["stay_amb"][LG].format(AMBASSADOR_CHAT=AMBASSADOR_CHAT), parse_mode="HTML")
 
         add_cnt = 0
         for ref_id in user.referrals_ids:
