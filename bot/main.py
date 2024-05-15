@@ -52,14 +52,15 @@ class User(Document):
 User.register_collection()
 
 
-CHANEL_ID = '@qwertyuikmnbvcfd'
-CHANEL_LINK = '{link}'
-AMBASSADOR_CHAT = "{link}"
+CHANEL_ID = '@superton_news'
+CHANEL_LINK = 'https://t.me/superton_news'
+AMBASSADOR_CHAT = "https://t.me/+JRKQV_MyMf8yM2Iy"
+
 
 REWARD_SECONDS_DELTA = 60 * 60 * 24
 REWARDS_CNT = [1, 2, 4, 8, 10]
 
-bot = Bot(token="7151259279:AAGLzcG1lC7ZsDmyR_A2OLLQA-pfDM1Um28")
+bot = Bot(token="7199800960:AAFYf3lz_GOQK7DFuK0mxhzDlSMwZuAQ9W8")
 
 dp = Dispatcher()
 
@@ -310,7 +311,9 @@ async def reward(message: types.Message):
             await message.answer(td.REWARD["invite_2"][LG], parse_mode="HTML", reply_markup=builder.as_markup())
             return
 
-        if user.last_reward is None or (user.last_reward + timedelta(seconds=REWARD_SECONDS_DELTA) < datetime.now()):
+
+        date_delta = datetime.now() - user.last_reward
+        if user.last_reward is None or (date_delta.days >= 1):
             builder = InlineKeyboardBuilder()
             builder.row(InlineKeyboardButton(
                 text=td.REWARD["get_btn"][LG],
@@ -319,7 +322,11 @@ async def reward(message: types.Message):
             await message.answer(td.REWARD["can_get"][LG], reply_markup=builder.as_markup(), parse_mode="HTML")
 
         else:
-            time_until_reward = (user.last_reward + timedelta(seconds=REWARD_SECONDS_DELTA)) - datetime.now()
+            now_date = datetime.now()
+            next_date = now_date + timedelta(days=1)
+            next_date = next_date.replace(hour=0, minute=0, second=0, microsecond=0)
+
+            time_until_reward = next_date - now_date
             hours_until_reward = time_until_reward.seconds // 3600
             minutes_until_reward = (time_until_reward.seconds // 60) % 60
             await message.answer(td.REWARD["when_can"][LG].format(hours=hours_until_reward, minutes=minutes_until_reward), parse_mode="HTML")
@@ -339,7 +346,8 @@ async def get_reward(callback: types.CallbackQuery):
                 add_cnt = REWARDS_CNT[0]
                 user.last_reward_id = 0
             else:
-                if user.last_reward + timedelta(seconds=(REWARD_SECONDS_DELTA*2)) < datetime.now():
+                date_delta = datetime.now() - user.last_reward
+                if date_delta.days >= 2:
                     add_cnt = REWARDS_CNT[0]
                     user.last_reward_id = 0
                 else:
@@ -356,7 +364,7 @@ async def get_reward(callback: types.CallbackQuery):
             await user.update()
             
             await callback.message.delete()
-            await callback.message.answer(td.REWARD["received"][LG], parse_mode="HTML")
+            await callback.message.answer(td.REWARD["received"][LG].format(bonus_cnt=add_cnt), parse_mode="HTML")
         else:
             await callback.answer(td.REWARD["cant_get"][LG], parse_mode="HTML")
     except Exception as e:
@@ -371,21 +379,41 @@ async def start_game(message, show_rule=True):
         await message.answer(td.GAME["instruction"][LG], parse_mode="HTML")
     
     builder = InlineKeyboardBuilder()
-    builder.add(InlineKeyboardButton(
-        text="1 STN",
-        callback_data='bet_1')
+    builder.row(
+        InlineKeyboardButton(
+            text="1 STN",
+            callback_data='bet_1'
+        ),
+        InlineKeyboardButton(
+            text="2 STN",
+            callback_data='bet_2'
+        ),
+        InlineKeyboardButton(
+            text="4 STN",
+            callback_data='bet_4'
+        ),
+        InlineKeyboardButton(
+            text="8 STN",
+            callback_data='bet_8'
+        )
     )
-    builder.add(InlineKeyboardButton(
-        text="2 STN",
-        callback_data='bet_2')
-    )
-    builder.add(InlineKeyboardButton(
-        text="4 STN",
-        callback_data='bet_4')
-    )
-    builder.add(InlineKeyboardButton(
-        text="8 STN",
-        callback_data='bet_8')
+    builder.row(
+        InlineKeyboardButton(
+            text="15 STN",
+            callback_data='bet_15'
+        ),
+        InlineKeyboardButton(
+            text="30 STN",
+            callback_data='bet_30'
+        ),
+        InlineKeyboardButton(
+            text="60 STN",
+            callback_data='bet_60'
+        ),
+        InlineKeyboardButton(
+            text="100 STN",
+            callback_data='bet_100'
+        )
     )
     await message.answer(td.GAME["bet"][LG], reply_markup=builder.as_markup(), parse_mode="HTML")
 
@@ -422,7 +450,7 @@ async def get_bet(callback: types.CallbackQuery, bet: int):
             callback_data='game_48')
         )
         builder.add(InlineKeyboardButton(
-            text="52 <",
+            text="> 52",
             callback_data='game_52')
         )
 
@@ -448,12 +476,31 @@ async def get_bet_4(callback: types.CallbackQuery):
 async def get_bet_8(callback: types.CallbackQuery):
     await get_bet(callback, 8)
 
+@dp.callback_query(F.data == "bet_15")
+async def get_bet_8(callback: types.CallbackQuery):
+    await get_bet(callback, 15)
+
+@dp.callback_query(F.data == "bet_30")
+async def get_bet_8(callback: types.CallbackQuery):
+    await get_bet(callback, 30)
+
+@dp.callback_query(F.data == "bet_60")
+async def get_bet_8(callback: types.CallbackQuery):
+    await get_bet(callback, 60)
+
+@dp.callback_query(F.data == "bet_100")
+async def get_bet_8(callback: types.CallbackQuery):
+    await get_bet(callback, 100)
+
 
 async def game_bet(callback: types.CallbackQuery, num: int):
     LG = get_lg(callback.from_user)
 
     user = await User.get(tg_id=callback.from_user.id)
     bot_num = random.randint(1, 100)
+    random_number = random.uniform(0, 100)
+    bot_num = round(random_number, 2)
+
 
     await callback.message.answer(td.GAME["bot_num"][LG].format(bot_num=bot_num), parse_mode="HTML")
 
@@ -527,13 +574,14 @@ async def be_ambassador(callback: types.CallbackQuery):
         user.is_ambassador = True
         await user.update()
 
-        await callback.message.answer(td.AMBASSADOR["stay_amb"][LG].format(AMBASSADOR_CHAT=AMBASSADOR_CHAT), parse_mode="HTML")
 
         add_cnt = 0
         for ref_id in user.referrals_ids:
             ref = await User.get(id=ref_id)
             if ref:
                 add_cnt += int((ref.state_balance / 100) * 10)
+
+        await callback.message.answer(td.AMBASSADOR["stay_amb"][LG].format(cnt=add_cnt, AMBASSADOR_CHAT=AMBASSADOR_CHAT), parse_mode="HTML")
 
         await add_balance(user, add_cnt, "ambassador")
     except Exception as e:

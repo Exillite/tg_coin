@@ -39,7 +39,7 @@ BALANCE = {
 
 WALLET = {
     "cancel_btn": {"ru": "Отмена", "en": "Cancel"},
-    "instruction": {"ru": "Отправьте адрес некастодиального кошелька в сети TON (рекомендуем Tonkeeper/MyTonWallet/Tonhub):", "en": "Send the address of a non-custodial wallet in the TON network (recommended Tonkeeper/MyTonWallet/Tonhub):"},
+    "instruction": {"ru": "Отправьте адрес некастодиального кошелька в сети TON 💎\n(рекомендуем Tonkeeper/MyTonWallet/Tonhub):", "en": "Send the address of a non-custodial wallet in the TON network (recommended Tonkeeper/MyTonWallet/Tonhub):"},
     "canceled": {"ru": "Отменено.", "en": "Canceled."},
     "okay": {"ru": "Кошелёк привязан.", "en": "Wallet linked."},
 }
@@ -49,12 +49,11 @@ REWARD = {
     "get_btn": {"ru": "Забрать бонус", "en": "Claim bonus"},
     "can_get": {"ru": "Вы можете забрать бонус.", "en": "You can claim the bonus."},
     "when_can": {"ru": "Ежедневный бонус будет доступен через {hours} часов и {minutes} минут.", "en": "Daily bonus will be available in {hours} hours and {minutes} minutes."},
-    "received": {"ru": "Вы получили ежедневный бонус.", "en": "You have received the daily bonus."},
+    "received": {"ru": "Вы получили {bonus_cnt} $STN.", "en": "You have received {bonus_cnt} $STN."},
     "cant_get": {"ru": "Ежедневный бонус пока не доступен.", "en": "Daily bonus is not yet available."},
 }
 
-GAME = {
-    "instruction": {"ru": "Для тех, кто хочет испытать свою удачу и увеличить количество получаемых токенов <b>$STN</b>.\nЕсли вы угадаете случайное число, ваша ставка увеличится в два раза. В противном случае вы проиграете.\n\nВыберите вашу ставку, а затем угадайте, будет ли выпавшее случайное число больше 52 или меньше 48.\nЕсли ваш выбор совпадает с результатом, вы побеждаете и получаете выигрыш в размере вашей ставки.", "en": "For those who want to test their luck and increase the amount of received tokens <b>$STN</b>.\nIf you guess the random number, your bet will double. Otherwise, you lose.\n\nChoose your bet, and then guess whether the random number will be greater than 52 or less than 48.\nIf your choice matches the result, you win and receive a payout equal to your bet."},
+GAME = {"Игра для тех, кто хочет испытать свою удачу 🍀\nи увеличить количество получаемых токенов $STN.\n\nЕсли вы угадаете случайное число, ваша ставка увеличится в два раза.\nВ противном случае вы проиграете. \n\nВыберите вашу ставку, а затем угадайте, будет ли выпавшее случайное число больше 52 или меньше 48. 🎲\nЕсли ваш выбор совпадает с результатом, вы побеждаете и получаете выигрыш в размере вашей ставки. 💫", "en": "For those who want to test their luck and increase the amount of received tokens <b>$STN</b>.\nIf you guess the random number, your bet will double. Otherwise, you lose.\n\nChoose your bet, and then guess whether the random number will be greater than 52 or less than 48.\nIf your choice matches the result, you win and receive a payout equal to your bet."},
     "bet": {"ru": "Выберите ставку:", "en": "Choose your bet:"},
     "less_tokens": {"ru": "У вас недостаточно средств!", "en": "You have insufficient funds!"},
     "num": {"ru": "Угадайте число", "en": "Guess the number"},
@@ -63,9 +62,9 @@ GAME = {
 }
 
 AMBASSADOR = {
-    "cant": {"ru": "Чтобы получить доступ и дополнительно получать 10% от дохода ваших друзей, пригласите 100 или более пользователей!", "en": "To gain access and receive an additional 10% of your friends' income, invite 100 or more users!"},
+    "cant": {"ru": "Чтобы получить доступ и дополнительно получать 10% от дохода ваших друзей, <b>пригласите 100 или более друзей</b>! 👥", "en": "To gain access and receive an additional 10% of your friends' income, invite 100 or more users!"},
     "already": {"ru": "Вы уже получаете 10% от дохода ваших друзей.\nПрисоединяйтесь к чату амбассадоров. Там самая актуальная информация о проекте!\n{AMBASSADOR_CHAT}", "en": "You already receive 10% of your friends' income.\nJoin the ambassadors' chat. There is the most up-to-date information about the project!\n{AMBASSADOR_CHAT}"},
     "be_amb_btn": {"ru": "Стать амбассадором", "en": "Become an ambassador"},
     "be_amb_msg": {"ru": "Вы пригласили 100 пользователей", "en": "You have invited 100 users"},
-    "stay_amb": {"ru": "Теперь вы получаете 10% от дохода ваших друзей.\nПрисоединяйтесь к чату амбассадоров. Там самая актуальная информация о проекте!\n{AMBASSADOR_CHAT}", "en": "Now you receive 10% of your friends' income.\nJoin the ambassadors' chat. There is the most up-to-date information about the project!\n{AMBASSADOR_CHAT}"},
+    "stay_amb": {"ru": "Поздравляю! 🥳\nТеперь вы получаете <b>10%</b> от дохода ваших друзей.\nПрисоединяйтесь к чату амбассадоров. Там самая актуальная информация о проекте! 🚀\nВы получили {cnt} $STN!\n\n{AMBASSADOR_CHAT}", "en": "Now you receive 10% of your friends' income.\nJoin the ambassadors' chat. There is the most up-to-date information about the project!\n{AMBASSADOR_CHAT}"},
 }
