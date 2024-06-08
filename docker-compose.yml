@@ -1,6 +1,28 @@
 version: '3'
 
 services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: uvicorn main:app --host 0.0.0.0 --reload
+    restart: always
+    ports:
+      - "8000:8000"
+    networks:
+      - custom
+    depends_on:
+      - mongo_db
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - custom
+    volumes:
+      - ./frontend:/app
+
   mongo_db:
     image: mongo
 
@@ -17,6 +39,15 @@ services:
       context: "./bot"
       dockerfile: Dockerfile
     restart: always
+    networks:
+      - custom
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
     networks:
       - custom
 

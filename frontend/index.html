@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Georama:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="styles/style.css" />
+</head>
+
+<body>
+    <img src="assets/heart.png" hidden />
+    <img src="assets/heart_miss.png" hidden />
+
+
+    <!-- <div class="cntup">+1</div> -->
+
+    <div class="head" id="head">
+        <div style="height: 10px;"></div>
+        <div class="titleblock">
+            <img src="assets/coin_mini.png" />
+            <div class="count centring" id="count">00000</div>
+            <div class="centring hearts" id=hearts>
+                <img id="heart-1" />
+                <img id="heart-2" />
+                <img id="heart-3" />
+            </div>
+        </div>
+
+    </div>
+    
+    <div class="main" id="main">
+        <div id="clicker">
+            <img src="assets/coin.png" id="coin_img" hidden />
+            <canvas id="game_canvas"></canvas>
+            <div class="timerblock" id="timerline">
+                <div class="timerline">
+                    <span id="timeprogress" style="width: 100%"></span>
+                    <div id="divers" class="divers">
+                        <div class="diver" style="margin-left: 25%"></div>
+                        <div class="diver" style="margin-left: 25%"></div>
+                        <div class="diver" style="margin-left: 25%; margin-right: 25%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="start_menu">
+            <div class="startmenu">
+                <img src="assets/coin.png" id="canstart" />
+                <!-- <span id="canstart" class="starttxt" hidden>Нажмите, чтобы начать</span> -->
+                <span id="cantstart" class="starttxt" hidden></span>
+            </div>
+            <!-- <button id="start_btn">Начать попытку</button> -->
+        </div>
+
+
+    <div class="bottom" id="bottom">
+        <div class="island-bottom">
+            <div class="bbb" style="margin-left: 8px;" id="frinds_btn">
+                <div class="bbbi">
+                    <img src="assets/friends.png" />
+                </div>
+                <p>Friends</p>
+            </div>
+            <div class="vline"></div>
+            <div class="bbb" id="boost_btn">
+                <div class="bbbi">
+                    <img src="assets/fire.png" />
+                </div>
+                <p>Boost</p>
+            </div>
+            <div class="vline"></div>
+            <div class="bbb" id="earn_btn">
+                <div class="bbbi">
+                    <img src="assets/coin_mini.png" />
+                </div>
+                <p>Earn</p>
+            </div>
+            <div class="vline"></div>
+            <div class="bbb" id="bot_btn">
+                <div class="bbbi">
+                    <img src="assets/bot.png" />
+                </div>
+                <p>Tap Bot</p>
+            </div>
+            <div class="vline"></div>
+            <div class="bbb" style="margin-right: 8px;" id="squad_btn">
+                <div class="bbbi">
+                    <img src="assets/sqad.png" />
+                </div>
+                <p>Squad</p>
+            </div>
+        </div>
+    </div>
+    <script src="scripts/index.js"></script>
+</body>
+
+</html>

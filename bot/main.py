@@ -6,7 +6,7 @@ from aiogram.filters.command import Command
 from aiogram.utils.deep_linking import create_start_link
 from aiogram.methods.get_chat_member import GetChatMember
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
-from aiogram.types import InlineKeyboardButton, KeyboardButton
+from aiogram.types import InlineKeyboardButton, KeyboardButton, WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram import F
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.fsm.context import FSMContext
@@ -46,21 +46,21 @@ class User(Document):
     is_ambassador: bool = False
 
     class Config:
-        collection_name = "Users"
+        collection_name = "Game_Users"
 
 
 User.register_collection()
 
 
-CHANEL_ID = '@superton_news'
-CHANEL_LINK = 'https://t.me/superton_news'
+CHANEL_ID = '@fgjhgjkhkljl'
+CHANEL_LINK = 'https://t.me/fgjhgjkhkljl'
 AMBASSADOR_CHAT = "https://t.me/+JRKQV_MyMf8yM2Iy"
 
 
 REWARD_SECONDS_DELTA = 60 * 60 * 24
 REWARDS_CNT = [1, 2, 4, 8, 10]
 
-bot = Bot(token="7199800960:AAFYf3lz_GOQK7DFuK0mxhzDlSMwZuAQ9W8")
+bot = Bot(token="7151259279:AAGLzcG1lC7ZsDmyR_A2OLLQA-pfDM1Um28")
 
 dp = Dispatcher()
 
@@ -141,7 +141,7 @@ async def request_subscribe(callback):
         builder = InlineKeyboardBuilder()
         builder.row(InlineKeyboardButton(
             text=td.SUB_REQ["chanel_btn"][LG],
-            url='https://t.me/qwertyuikmnbvcfd')
+            url=CHANEL_LINK)
         )
         builder.row(InlineKeyboardButton(
             text=td.SUB_REQ["check_sub_btn"][LG],
@@ -311,9 +311,12 @@ async def reward(message: types.Message):
             await message.answer(td.REWARD["invite_2"][LG], parse_mode="HTML", reply_markup=builder.as_markup())
             return
 
+        
+        date_delta = None
+        if user.last_reward is not None:
+            date_delta = datetime.now() - user.last_reward
 
-        date_delta = datetime.now() - user.last_reward
-        if user.last_reward is None or (date_delta.days >= 1):
+        if date_delta is None or (date_delta.days >= 1):
             builder = InlineKeyboardBuilder()
             builder.row(InlineKeyboardButton(
                 text=td.REWARD["get_btn"][LG],
@@ -424,7 +427,27 @@ async def game(message: types.Message):
     if not (await is_sub(message.from_user.id)):
         await request_subscribe(message)
         return
-    await start_game(message)
+    try:
+        ikb_donate = InlineKeyboardMarkup(row_width=1,
+                                    inline_keyboard=[
+                                        [
+                                            InlineKeyboardButton(text='game', web_app=WebAppInfo(url=f'https://3937-46-39-56-187.ngrok-free.app'))
+                                        ]
+                                    ])
+
+        await message.answer("запустить угру", reply_markup=ikb_donate)
+    except Exception as e:
+        pritn(str(e))
+        print(traceback.format_exc())
+
+
+# @dp.message(F.text == "🎲 Игра 48/52")
+# @dp.message(F.text == "🎲 Game 48/52")
+# async def game(message: types.Message):
+#     if not (await is_sub(message.from_user.id)):
+#         await request_subscribe(message)
+#         return
+#     await start_game(message)
 
 @dp.callback_query(F.data == "game_again")
 async def game_again(callback: types.CallbackQuery):
